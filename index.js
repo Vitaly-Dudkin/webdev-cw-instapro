@@ -1,4 +1,4 @@
-import { getPosts } from "./api.js";
+import { getPosts, addPost } from "./api.js";
 import { renderAddPostPageComponent } from "./components/add-post-page-component.js";
 import { renderAuthPageComponent } from "./components/auth-page-component.js";
 import {
@@ -10,20 +10,25 @@ import {
 } from "./routes.js";
 import { renderPostsPageComponent } from "./components/posts-page-component.js";
 import { renderLoadingPageComponent } from "./components/loading-page-component.js";
+import { renderUserPostsPageComponent } from "./components/user-posts-page-component.js";
 import {
   getUserFromLocalStorage,
   removeUserFromLocalStorage,
   saveUserToLocalStorage,
 } from "./helpers.js";
 
+
 export let user = getUserFromLocalStorage();
+console.log("Текущий пользователь:", user);
 export let page = null;
 export let posts = [];
+export let currentPageData = null;
 
 const getToken = () => {
   const token = user ? `Bearer ${user.token}` : undefined;
   return token;
 };
+
 
 export const logout = () => {
   user = null;
@@ -45,7 +50,6 @@ export const goToPage = (newPage, data) => {
     ].includes(newPage)
   ) {
     if (newPage === ADD_POSTS_PAGE) {
-      /* Если пользователь не авторизован, то отправляем его на страницу авторизации перед добавлением поста */
       page = user ? ADD_POSTS_PAGE : AUTH_PAGE;
       return renderApp();
     }
@@ -62,21 +66,42 @@ export const goToPage = (newPage, data) => {
         })
         .catch((error) => {
           console.error(error);
-          goToPage(POSTS_PAGE);
+          page = POSTS_PAGE;
+          posts = [];
+          renderApp();
         });
     }
 
     if (newPage === USER_POSTS_PAGE) {
-      // @@TODO: реализовать получение постов юзера из API
-      console.log("Открываю страницу пользователя: ", data.userId);
-      page = USER_POSTS_PAGE;
-      posts = [];
-      return renderApp();
+      if (!data || !data.userId) {
+        console.error(
+          "Не передан ID пользователя для страницы USER_POSTS_PAGE"
+        );
+        return goToPage(POSTS_PAGE);
+      }
+
+      page = LOADING_PAGE;
+      currentPageData = data;
+      renderApp();
+
+      return getPosts({ token: getToken() })
+        .then((allPosts) => {
+          page = USER_POSTS_PAGE;
+          // 🔸 Сравниваем ID как строки, чтобы избежать проблем с типами
+          posts = allPosts.filter(post => String(post.user.id) === String(data.userId));
+          renderApp();
+        })
+        .catch((error) => {
+          console.error(
+            "Ошибка при загрузке постов для страницы пользователя:",
+            error
+          );
+          goToPage(POSTS_PAGE);
+        });
     }
 
     page = newPage;
     renderApp();
-
     return;
   }
 
@@ -85,6 +110,7 @@ export const goToPage = (newPage, data) => {
 
 const renderApp = () => {
   const appEl = document.getElementById("app");
+
   if (page === LOADING_PAGE) {
     return renderLoadingPageComponent({
       appEl,
@@ -110,9 +136,24 @@ const renderApp = () => {
     return renderAddPostPageComponent({
       appEl,
       onAddPostClick({ description, imageUrl }) {
-        // @TODO: реализовать добавление поста в API
-        console.log("Добавляю пост...", { description, imageUrl });
-        goToPage(POSTS_PAGE);
+        page = LOADING_PAGE;
+        renderApp();
+
+        addPost({
+          token: getToken(),
+          description,
+          imageUrl,
+        })
+          .then((newPost) => {
+            console.log("Пост добавлен", newPost);
+            posts.unshift(newPost);
+            goToPage(POSTS_PAGE);
+          })
+          .catch((error) => {
+            console.error("Ошибка при добавлении поста:", error);
+            alert("Не удалось добавить пост: " + error.message);
+            goToPage(ADD_POSTS_PAGE);
+          });
       },
     });
   }
@@ -124,9 +165,12 @@ const renderApp = () => {
   }
 
   if (page === USER_POSTS_PAGE) {
-    // @TODO: реализовать страницу с фотографиями отдельного пользвателя
-    appEl.innerHTML = "Здесь будет страница фотографий пользователя";
-    return;
+    return renderUserPostsPageComponent({
+      appEl,
+      posts: posts,
+      goToPage,
+      currentUser: user,
+    });
   }
 };
 
