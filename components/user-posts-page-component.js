@@ -7,7 +7,6 @@ export function renderUserPostsPageComponent({ appEl, posts, goToPage, currentUs
   let pageTitle = "Посты пользователя";
   if (posts.length > 0) {
     const owner = posts[0].user;
-    // 🔸 Сравниваем ID как строки — это решит проблему типов
     const isMyProfile = currentUser && String(currentUser._id) === String(owner.id);
     pageTitle = isMyProfile ? "Мои посты" : `Посты: ${owner.name}`;
   }
