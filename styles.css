@@ -196,3 +196,18 @@
   width: 100%;
   text-align: center;
 }
+
+.user-page-title {
+  text-align: center;
+  margin: 20px 0 30px;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.no-posts {
+  text-align: center;
+  color: #7f8c8d;
+  font-style: italic;
+  padding: 40px 0;
+}
