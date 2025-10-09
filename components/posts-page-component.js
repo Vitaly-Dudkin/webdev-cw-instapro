@@ -2,15 +2,18 @@ import { USER_POSTS_PAGE } from "../routes.js";
 import { renderHeaderComponent } from "./header-component.js";
 import { posts, goToPage } from "../index.js";
 import { formatDistanceToNow } from "../helpers.js";
+import { handleLikeClick } from "./like-handler.js";
 
 
-export function renderPostsPageComponent({ appEl }) {
+
+export function renderPostsPageComponent({ appEl, token }) { // ← добавлен token
+  const formatLikesCount = (post) => {
+    return Array.isArray(post.likes) ? post.likes.length : (typeof post.likes === 'number' ? post.likes : 0);
+  };
+
   const postsHtml = posts.map(post => {
     const isLiked = post.isLiked ? "like-active.svg" : "like-not-active.svg";
-    const likesCount = Array.isArray(post.likes) 
-      ? post.likes.length 
-      : (typeof post.likes === 'number' ? post.likes : 0);
-    
+    const likesCount = formatLikesCount(post);
     const formattedDate = formatDistanceToNow(post.createdAt);
     
     return `
@@ -41,7 +44,7 @@ export function renderPostsPageComponent({ appEl }) {
     `;
   }).join('');
 
-  const appHtml = `
+  appEl.innerHTML = `
     <div class="page-container">
       <div class="header-container"></div>
       <ul class="posts">
@@ -50,16 +53,34 @@ export function renderPostsPageComponent({ appEl }) {
     </div>
   `;
 
-  appEl.innerHTML = appHtml;
-
   renderHeaderComponent({
     element: appEl.querySelector(".header-container"),
   });
 
+  // Обработчики аватаров
   for (const userEl of appEl.querySelectorAll(".post-header")) {
     userEl.addEventListener("click", () => {
       goToPage(USER_POSTS_PAGE, {
         userId: userEl.dataset.userId,
+      });
+    });
+  }
+
+  // 🔸 Обработчики лайков
+  for (const likeButton of appEl.querySelectorAll(".like-button")) {
+    const postId = likeButton.dataset.postId;
+    likeButton.addEventListener("click", () => {
+      handleLikeClick({
+        postId,
+        likeButton,
+        token,
+        onLikeUpdate: (updatedPost) => {
+          // Обновляем глобальный массив posts
+          const index = posts.findIndex(p => p.id === updatedPost.id);
+          if (index !== -1) {
+            posts[index] = updatedPost;
+          }
+        }
       });
     });
   }

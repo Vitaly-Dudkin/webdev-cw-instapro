@@ -3,6 +3,7 @@
 const personalKey = "Vitaly_Dudkin";
 const baseHost = "https://webdev-hw-api.vercel.app";
 const postsHost = `${baseHost}/api/v1/${personalKey}/instapro`;
+const likeHost = `${baseHost}/api/v1/${personalKey}/instapro`;
 
 export function getPosts({ token }) {
   return fetch(postsHost, {
@@ -86,3 +87,27 @@ export function uploadImage({ file }) {
     return response.json();
   });
 }
+
+export const addLike = ({ postId, token }) => {
+  return fetch(`${likeHost}/${postId}/like`, {
+    method: "POST",
+    headers: {
+      Authorization: token,
+    },
+  }).then((response) => {
+    if (!response.ok) throw new Error("Не удалось поставить лайк");
+    return response.json().then(data => data.post);
+  });
+};
+
+export const removeLike = ({ postId, token }) => {
+  return fetch(`${likeHost}/${postId}/dislike`, {
+    method: "POST",
+    headers: {
+      Authorization: token,
+    },
+  }).then((response) => {
+    if (!response.ok) throw new Error("Не удалось убрать лайк");
+    return response.json().then(data => data.post);
+  });
+};

@@ -2,8 +2,9 @@
 import { renderHeaderComponent } from "./header-component.js";
 import { formatDistanceToNow } from "../helpers.js";
 import { USER_POSTS_PAGE } from "../routes.js";
+import { handleLikeClick } from "./like-handler.js"; // ← новый импорт
 
-export function renderUserPostsPageComponent({ appEl, posts, goToPage, currentUser }) {
+export function renderUserPostsPageComponent({ appEl, posts, goToPage: goToPageFn, currentUser, token }) {
   let pageTitle = "Посты пользователя";
   if (posts.length > 0) {
     const owner = posts[0].user;
@@ -13,9 +14,7 @@ export function renderUserPostsPageComponent({ appEl, posts, goToPage, currentUs
 
   const postsHtml = posts.map(post => {
     const isLiked = post.isLiked ? "like-active.svg" : "like-not-active.svg";
-    const likesCount = Array.isArray(post.likes) 
-      ? post.likes.length 
-      : (typeof post.likes === 'number' ? post.likes : 0);
+    const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
     const formattedDate = formatDistanceToNow(post.createdAt);
 
     return `
@@ -65,10 +64,30 @@ export function renderUserPostsPageComponent({ appEl, posts, goToPage, currentUs
     element: appEl.querySelector(".header-container"),
   });
 
+  // Обработчики аватаров
   for (const userEl of appEl.querySelectorAll(".post-header")) {
     userEl.addEventListener("click", () => {
-      goToPage(USER_POSTS_PAGE, {
+      goToPageFn(USER_POSTS_PAGE, {
         userId: userEl.dataset.userId,
+      });
+    });
+  }
+
+  // 🔸 Обработчики лайков
+  for (const likeButton of appEl.querySelectorAll(".like-button")) {
+    const postId = likeButton.dataset.postId;
+    likeButton.addEventListener("click", () => {
+      handleLikeClick({
+        postId,
+        likeButton,
+        token,
+        onLikeUpdate: (updatedPost) => {
+          // Обновляем локальный массив posts
+          const index = posts.findIndex(p => p.id === updatedPost.id);
+          if (index !== -1) {
+            posts[index] = updatedPost;
+          }
+        }
       });
     });
   }
