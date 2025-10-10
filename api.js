@@ -111,3 +111,18 @@ export const removeLike = ({ postId, token }) => {
     return response.json().then(data => data.post);
   });
 };
+
+
+export const deletePost = ({ postId, token }) => {
+  return fetch(`${postsHost}/${postId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: token,
+    },
+  }).then((response) => {
+    if (!response.ok) {
+      throw new Error("Не удалось удалить пост");
+    }
+    return response.json(); // { "result": "ok" }
+  });
+};

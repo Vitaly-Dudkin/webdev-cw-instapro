@@ -1,4 +1,4 @@
-import { getPosts, addPost } from "./api.js";
+import { getPosts, addPost, deletePost } from "./api.js";
 import { renderAddPostPageComponent } from "./components/add-post-page-component.js";
 import { renderAuthPageComponent } from "./components/auth-page-component.js";
 import {
@@ -17,7 +17,6 @@ import {
   saveUserToLocalStorage,
 } from "./helpers.js";
 
-
 export let user = getUserFromLocalStorage();
 console.log("Текущий пользователь:", user);
 export let page = null;
@@ -29,11 +28,18 @@ const getToken = () => {
   return token;
 };
 
-
 export const logout = () => {
   user = null;
   removeUserFromLocalStorage();
   goToPage(POSTS_PAGE);
+};
+
+/**
+ * Удаляет пост по ID и обновляет интерфейс
+ */
+export const deletePostById = (postId) => {
+  posts = posts.filter(p => p.id !== postId);
+  renderApp();
 };
 
 /**
@@ -87,7 +93,6 @@ export const goToPage = (newPage, data) => {
       return getPosts({ token: getToken() })
         .then((allPosts) => {
           page = USER_POSTS_PAGE;
-          // 🔸 Сравниваем ID как строки, чтобы избежать проблем с типами
           posts = allPosts.filter(post => String(post.user.id) === String(data.userId));
           renderApp();
         })
@@ -108,7 +113,7 @@ export const goToPage = (newPage, data) => {
   throw new Error("страницы не существует");
 };
 
-const renderApp = () => {
+export const renderApp = () => {
   const appEl = document.getElementById("app");
 
   if (page === LOADING_PAGE) {
@@ -161,7 +166,8 @@ const renderApp = () => {
   if (page === POSTS_PAGE) {
     return renderPostsPageComponent({
       appEl,
-      token: getToken()
+      token: getToken(),
+      currentUser: user,
     });
   }
 

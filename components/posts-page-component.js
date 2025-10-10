@@ -1,12 +1,13 @@
 import { USER_POSTS_PAGE } from "../routes.js";
 import { renderHeaderComponent } from "./header-component.js";
-import { posts, goToPage } from "../index.js";
+import { goToPage, deletePostById, posts } from "../index.js";
+import { deletePost } from "../api.js";
 import { formatDistanceToNow } from "../helpers.js";
 import { handleLikeClick } from "./like-handler.js";
 
 
 
-export function renderPostsPageComponent({ appEl, token }) { // ← добавлен token
+export function renderPostsPageComponent({ appEl, token, currentUser }) { 
   const formatLikesCount = (post) => {
     return Array.isArray(post.likes) ? post.likes.length : (typeof post.likes === 'number' ? post.likes : 0);
   };
@@ -15,32 +16,42 @@ export function renderPostsPageComponent({ appEl, token }) { // ← добавл
     const isLiked = post.isLiked ? "like-active.svg" : "like-not-active.svg";
     const likesCount = formatLikesCount(post);
     const formattedDate = formatDistanceToNow(post.createdAt);
+    const isMyPost = currentUser && String(currentUser._id) === String(post.user.id);
+    const deleteButtonHtml = isMyPost 
+      ? `<button class="delete-button" data-post-id="${post.id}">Удалить</button>`
+      : "";
     
-    return `
-      <li class="post">
-        <div class="post-header" data-user-id="${post.user.id}">
-            <img src="${post.user.imageUrl}" class="post-header__user-image">
-            <p class="post-header__user-name">${post.user.name}</p>
-        </div>
-        <div class="post-image-container">
-          <img class="post-image" src="${post.imageUrl}">
-        </div>
-        <div class="post-likes">
-          <button data-post-id="${post.id}" class="like-button">
-            <img src="./assets/images/${isLiked}">
-          </button>
-          <p class="post-likes-text">
-            Нравится: <strong>${likesCount}</strong>
-          </p>
-        </div>
-        <p class="post-text">
-          <span class="user-name">${post.user.name}</span>
-          ${post.description}
+      return `
+  <li class="post">
+    <div class="post-header" data-user-id="${post.user.id}">
+      <img src="${post.user.imageUrl}" class="post-header__user-image">
+      <p class="post-header__user-name">${post.user.name}</p>
+    </div>
+
+    <div class="post-image-container">
+      <img class="post-image" src="${post.imageUrl}">
+    </div>
+
+    <div class="post-actions">
+      <div class="post-likes">
+        <button data-post-id="${post.id}" class="like-button">
+          <img src="./assets/images/${isLiked}">
+        </button>
+        <p class="post-likes-text">
+          Нравится: <strong>${likesCount}</strong>
         </p>
-        <p class="post-date">
-          ${formattedDate}
-        </p>
-      </li>
+      </div>
+      ${deleteButtonHtml ? `<div class="post-delete">${deleteButtonHtml}</div>` : ''}
+    </div>
+
+    <p class="post-text">
+      <span class="user-name">${post.user.name}</span>
+      ${post.description}
+    </p>
+    <p class="post-date">
+      ${formattedDate}
+    </p>
+  </li>
     `;
   }).join('');
 
@@ -84,4 +95,19 @@ export function renderPostsPageComponent({ appEl, token }) { // ← добавл
       });
     });
   }
+    for (const deleteBtn of appEl.querySelectorAll(".delete-button")) {
+      const postId = deleteBtn.dataset.postId;
+      deleteBtn.addEventListener("click", () => {
+        if (!confirm("Вы уверены, что хотите удалить пост?")) return;
+    
+        deletePost({ postId, token })
+          .then(() => {
+            deletePostById(postId); // ← вызываем из index.js
+          })
+          .catch((error) => {
+            console.error("Ошибка удаления:", error);
+            alert("Не удалось удалить пост: " + error.message);
+          });
+      });
+    }
 }
