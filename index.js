@@ -171,6 +171,7 @@ const renderApp = () => {
       posts: posts,
       goToPage,
       currentUser: user,
+      token: getToken(),
     });
   }
 };
