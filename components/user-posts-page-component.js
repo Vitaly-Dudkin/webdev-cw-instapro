@@ -43,7 +43,7 @@ export function renderUserPostsPageComponent({ appEl, posts, goToPage: goToPageF
           Нравится: <strong>${likesCount}</strong>
         </p>
       </div>
-      ${deleteButtonHtml ? `<div class="post-delete">${deleteButtonHtml}</div>` : ''}
+      ${deleteButtonHtml}
     </div>
 
     <p class="post-text">
